@@ -1,0 +1,14 @@
+{
+  "manifest_version": 2,
+  "name": "Euro price rounder",
+  "version": "1.0",
+
+  "description": "Round any price in euro to the upper value.",
+
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["price_rounder.js"]
+    }
+  ]
+}

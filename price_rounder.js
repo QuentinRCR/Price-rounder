@@ -1,48 +1,57 @@
-const pricePattern = /\d{1,3}(\,\d{2})?\s?€/g;
-const elements = document.querySelectorAll("body *");  // Select all elements in the body
+const onMutation = () => {
+    const pricePattern = /\d{1,3}((\,||.)\d{1,2})?\s?€/g; //matches 22.90 €, 22.9 €, 22.9€, 22€, 22 € ....
+    const elements = document.querySelectorAll("body *");  // Select all elements in the body
 
-elements.forEach(element => {
-    // For elements without children
-    if (element.children.length==0 && element.textContent.match(pricePattern)) {
-        console.log("1",element.textContent)
+    elements.forEach(element => {
+        // For elements without children
+        if (element.children.length==0 && element.textContent.match(pricePattern)) {
+            console.log("1",element.textContent)
 
-        let prices = element.textContent.match(pricePattern);
+            let prices = element.textContent.match(pricePattern);
 
-        prices.forEach(price => {
-            let originalPrice = price.replace('€', '').replace(',', '.'); // Remove € and replace , with .
+            prices.forEach(price => {
+                const useComma = price.includes(','); // if the price is written with a comma
+                let originalPrice = price.replace('€', '') // Remove €
+
+                if (useComma){
+                    originalPrice = originalPrice.replace(',', '.');  //replace , with .
+                }  
+
+                let roundedPrice = roundPrice(Number(originalPrice)); // Round the price
+
+                let textPrice  = roundedPrice.toFixed(2)  + '€'; // add the euro symbol back
+
+                if (useComma){
+                    textPrice = textPrice.replace(".", ",")
+                }
+
+                // Replace the original price in the element's text content
+                element.textContent = element.textContent.replace(price, textPrice);
+            });
+        }
+        // If the element has child elements, we need a more complex approach
+        else if (element.classList.contains('product-price__price')) {
+            // Find the price text and remove the € symbol for conversion
+            let priceText = element.firstChild.data.match(pricePattern)[0];
+            let originalPrice = priceText.replace('€', '').replace(',', '.').trim();
 
             let roundedPrice = roundPrice(Number(originalPrice)); // Round the price
-
-            // Replace the original price in the element's text content
-            element.textContent = element.textContent.replace(price, roundedPrice.toFixed(2).replace(".", ",") + '€');
-        });
-    }
-    // If the element has child elements, we need a more complex approach
-    else if (element.classList.contains('product-price__price')) {
-        console.log("2",element.textContent)
-        
-        // Find the price text and remove the € symbol for conversion
-        let priceText = element.firstChild.data.match(pricePattern)[0];
-        let originalPrice = priceText.replace('€', '').replace(',', '.').trim();
-
-        let roundedPrice = roundPrice(Number(originalPrice)); // Round the price
-        
-        // Replace the original price in the element's HTML, keeping the <sup> tag intact
-        element.firstChild.data = element.firstChild.data.replace(priceText, roundedPrice.toFixed(2).replace(".", ",") + '€');
-    }
-    // amazon
-    else if(element.classList.contains('a-price')){
-        console.log("3",element.textContent)
-        
-        let priceContainer = element.querySelector('span[aria-hidden="true"]');
-        if (priceContainer.children.length > 0){ // ignore simple prices
-            //reconstruct the price from amazon weird price display
-            let priceText = (priceContainer.getElementsByClassName('a-price-whole')[0].textContent + "," + priceContainer.getElementsByClassName('a-price-fraction')[0].textContent).replace(',,',',').replace(",",".");
-            let roundedPrice = roundPrice(Number(priceText)); // Round the price
-            priceContainer.innerHTML = roundedPrice.toFixed(2).replace(".", ",") + '€' // replace the complicated spans with some texts
+            
+            // Replace the original price in the element's HTML, keeping the <sup> tag intact
+            element.firstChild.data = element.firstChild.data.replace(priceText, roundedPrice.toFixed(2).replace(".", ",") + '€');
         }
-    }
-});
+        // amazon
+        else if(element.classList.contains('a-price')){
+            let priceContainer = element.querySelector('span[aria-hidden="true"]');
+            if (priceContainer.children.length > 0){ // ignore simple prices
+                //reconstruct the price from amazon weird price display
+                let priceText = (priceContainer.getElementsByClassName('a-price-whole')[0].textContent + "," + priceContainer.getElementsByClassName('a-price-fraction')[0].textContent).replace(',,',',').replace(",",".");
+                let roundedPrice = roundPrice(Number(priceText)); // Round the price
+                priceContainer.innerHTML = roundedPrice.toFixed(2).replace(".", ",") + '€' // replace the complicated spans with some texts
+            }
+        }
+    });
+}
 
 function roundPrice(price) {
     // console.log(price);
@@ -67,3 +76,4 @@ function roundPrice(price) {
 }
 
 
+onMutation();

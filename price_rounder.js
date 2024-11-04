@@ -9,8 +9,7 @@ const processElements = (elements) => {
 
             prices.forEach(price => {
                 const useComma = price.includes(','); // if the price is written with a comma
-                let originalPrice = price.replace('€', '') // Remove €
-                originalPrice = originalPrice.replace(/\s+/g, '') // Remove all white spaces
+                let originalPrice = price.replace('€', '').replace(/\s+/g, '') // Remove € and all white spaces
 
                 if (useComma){
                     originalPrice = originalPrice.replace(',', '.');  //replace , with .
@@ -29,22 +28,27 @@ const processElements = (elements) => {
             });
         }
         // If the element has child elements, we need a more complex approach
-        else if (element.classList.contains('product-price__price')) {
-            // Find the price text and remove the € symbol for conversion
-            let priceText = element.firstChild.data.match(pricePattern)[0];
-            let originalPrice = priceText.replace('€', '').replace(',', '.').replace(/\s+/g, '').trim();
+        else if (element.classList.contains('product-price__price')) { //a bit specific for darty
+            // Find the price text
+            let priceTexts = element.firstChild.data.match(pricePattern);
+            priceTexts.forEach((priceText)=>{
+                let originalPrice = priceText.replace('€', '').replace(',', '.').replace(/\s+/g, '');
 
-            let roundedPrice = roundPrice(Number(originalPrice)); // Round the price
-            
-            // Replace the original price in the element's HTML, keeping the <sup> tag intact
-            element.firstChild.data = element.firstChild.data.replace(priceText, roundedPrice.toFixed(2).replace(".", ",") + '€');
+                let roundedPrice = roundPrice(Number(originalPrice)); // Round the price
+
+                // Replace the original price in the element's text content
+                element.firstChild.data = element.firstChild.data.replace(priceText, roundedPrice.toFixed(2).replace(".", ",") + '€');
+            })
         }
-        // amazon
+
+        // handle amazon weird price display
         else if(element.classList.contains('a-price')){
             let priceContainer = element.querySelector('span[aria-hidden="true"]');
-            if (priceContainer.children.length > 0){ // ignore simple prices
+            if (priceContainer.children.length > 0){ // ignore simple prices that were already handled by the first case
+                
                 //reconstruct the price from amazon weird price display
-                let priceText = (priceContainer.getElementsByClassName('a-price-whole')[0].textContent.replace(/\s+/g, '') + "," + priceContainer.getElementsByClassName('a-price-fraction')[0].textContent).replace(',,',',').replace(",",".");
+                let priceText = (priceContainer.getElementsByClassName('a-price-whole')[0].textContent.replace(/\s+/g, '') +
+                                "," + priceContainer.getElementsByClassName('a-price-fraction')[0].textContent).replace(',,',',').replace(",",".");
                 let roundedPrice = roundPrice(Number(priceText)); // Round the price
                 priceContainer.innerHTML = roundedPrice.toFixed(2).replace(".", ",") + '€' // replace the complicated spans with some texts
             }
@@ -53,7 +57,7 @@ const processElements = (elements) => {
 }
 
 function roundPrice(price) {
-    // For prices over 200, round to the nearest ten if the units are more that 4.9 (295€ => 30€)
+    // For prices over 200, round to the nearest ten if the units are more that 4.9 (295€ => 300€)
     if (price > 200 && price % 10 > 4.9) {
         price = Math.ceil(price / 10) * 10;
     }
@@ -96,9 +100,12 @@ function roundPrice(price) {
 // console.log("Background script successfully running");
 // browser.runtime.onMessage.addListener(handleMessage);
 
-initialRounding = () => processElements(document.querySelectorAll("body *"));
+
+
 
 // Initialization
+initialRounding = () => processElements(document.querySelectorAll("body *"));
+
 if (document.readyState !== 'loading') {
     // document is already ready, just execute code here
     initialRounding();
@@ -120,6 +127,7 @@ observer.observe(document.body, {
     subtree: true
 });
 
+// perform this operation every time the dom is updated
 function handleNewNodes(mutations) {
     const addedElements = []; // Array to store all added elements
 

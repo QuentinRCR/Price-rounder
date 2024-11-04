@@ -1,6 +1,5 @@
-const onMutation = () => {
+const processElements = (elements) => {
     const pricePattern = /\d{1,3}((\,||.)\d{1,2})?\s?€/g; //matches 22.90 €, 22.9 €, 22.9€, 22€, 22 € ....
-    const elements = document.querySelectorAll("body *");  // Select all elements in the body
 
     elements.forEach(element => {
         // For elements without children
@@ -61,6 +60,10 @@ function roundPrice(price) {
         price = Math.ceil(price / 10) * 10;
     }
 
+    if (price > 200 && price % 10 > 4) {
+        price = Math.ceil(price / 10) * 10;
+    }
+
     // Round to the nearest whole number if cents are >= 0.85
     else if (price % 1 >= 0.85) {
         price = Math.round(price);
@@ -75,5 +78,38 @@ function roundPrice(price) {
     return price;
 }
 
+// browser.runtime.onMessage.addListener((message) => {
+//     console.log("Message received in background script:", message);
+//     console.log("Sender information:", sender);
 
-onMutation();
+
+//     if (message.command === "toggle") {
+//       console.log("toggle on");
+//     }
+// })
+
+
+
+// function handleMessage(request, sender, sendResponse) {
+//     console.log(`A content script sent a message: ${request}`);
+//     // sendResponse({ response: "Response from background script" });
+//   }
+  
+// console.log("Background script successfully running");
+// browser.runtime.onMessage.addListener(handleMessage);
+
+initialRounding = () => processElements(document.querySelectorAll("body *"));
+
+// Initialization
+if (document.readyState !== 'loading') {
+    // document is already ready, just execute code here
+    initialRounding();
+} else {
+    // if the doc is not ready, execute the extension once the entire DOM is ready 
+    document.addEventListener('DOMContentLoaded', function () {
+        console.log("Entire DOM is loaded");
+        initialRounding();
+    });
+}
+
+

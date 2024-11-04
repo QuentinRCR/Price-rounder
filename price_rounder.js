@@ -1,16 +1,16 @@
 const processElements = (elements) => {
-    const pricePattern = /\d{1,3}((\,||.)\d{1,2})?\s?€/g; //matches 22.90 €, 22.9 €, 22.9€, 22€, 22 € ....
+    const pricePattern = /(\d\s*?){1,6}((\,||.)\d{1,2})?\s?€/g; //matches 22.90 €, 22.9 €, 22.9€, 22€, 22 € 1000€ 100 000€ 100 000.02€
 
     elements.forEach(element => {
         // For elements without children
         if (element.children.length==0 && element.textContent.match(pricePattern)) {
-            console.log("1",element.textContent)
 
             let prices = element.textContent.match(pricePattern);
 
             prices.forEach(price => {
                 const useComma = price.includes(','); // if the price is written with a comma
                 let originalPrice = price.replace('€', '') // Remove €
+                originalPrice = originalPrice.replace(/\s+/g, '') // Remove all white spaces
 
                 if (useComma){
                     originalPrice = originalPrice.replace(',', '.');  //replace , with .
@@ -32,7 +32,7 @@ const processElements = (elements) => {
         else if (element.classList.contains('product-price__price')) {
             // Find the price text and remove the € symbol for conversion
             let priceText = element.firstChild.data.match(pricePattern)[0];
-            let originalPrice = priceText.replace('€', '').replace(',', '.').trim();
+            let originalPrice = priceText.replace('€', '').replace(',', '.').replace(/\s+/g, '').trim();
 
             let roundedPrice = roundPrice(Number(originalPrice)); // Round the price
             
@@ -44,7 +44,7 @@ const processElements = (elements) => {
             let priceContainer = element.querySelector('span[aria-hidden="true"]');
             if (priceContainer.children.length > 0){ // ignore simple prices
                 //reconstruct the price from amazon weird price display
-                let priceText = (priceContainer.getElementsByClassName('a-price-whole')[0].textContent + "," + priceContainer.getElementsByClassName('a-price-fraction')[0].textContent).replace(',,',',').replace(",",".");
+                let priceText = (priceContainer.getElementsByClassName('a-price-whole')[0].textContent.replace(/\s+/g, '') + "," + priceContainer.getElementsByClassName('a-price-fraction')[0].textContent).replace(',,',',').replace(",",".");
                 let roundedPrice = roundPrice(Number(priceText)); // Round the price
                 priceContainer.innerHTML = roundedPrice.toFixed(2).replace(".", ",") + '€' // replace the complicated spans with some texts
             }
@@ -53,14 +53,13 @@ const processElements = (elements) => {
 }
 
 function roundPrice(price) {
-    // console.log(price);
-
-    // For prices over 80, round to the nearest ten if the units are close to rounding up (88€ => 90€)
-    if (price > 80 && price % 10 > 7) {
+    // For prices over 200, round to the nearest ten if the units are more that 4.9 (295€ => 30€)
+    if (price > 200 && price % 10 > 4.9) {
         price = Math.ceil(price / 10) * 10;
     }
-
-    if (price > 200 && price % 10 > 4) {
+    
+    // For prices over 80, round to the nearest ten if the units are close to rounding up (88€ => 90€)
+    if (price > 80 && price % 10 > 7) {
         price = Math.ceil(price / 10) * 10;
     }
 
@@ -74,7 +73,6 @@ function roundPrice(price) {
         price = Number(price.toFixed(1));
     }
 
-    // console.log("=> ", price);
     return price;
 }
 
@@ -107,9 +105,37 @@ if (document.readyState !== 'loading') {
 } else {
     // if the doc is not ready, execute the extension once the entire DOM is ready 
     document.addEventListener('DOMContentLoaded', function () {
-        console.log("Entire DOM is loaded");
         initialRounding();
     });
 }
 
 
+// Handle DOM changes
+// Initialize MutationObserver
+const observer = new MutationObserver(handleNewNodes);
+
+// Start observing the body for child additions
+observer.observe(document.body, {
+    childList: true,
+    subtree: true
+});
+
+function handleNewNodes(mutations) {
+    const addedElements = []; // Array to store all added elements
+
+    mutations.forEach(mutation => {
+        // Check for added nodes in the mutation
+        mutation.addedNodes.forEach(node => {
+            if (node.nodeType === Node.ELEMENT_NODE) { // Only consider element nodes
+                addedElements.push(node); // Add the element itself
+                
+                // Add all subtree elements as well
+                node.querySelectorAll('*').forEach(subNode => {
+                    addedElements.push(subNode);
+                });
+            }
+        });
+    });
+
+    processElements(addedElements);
+}

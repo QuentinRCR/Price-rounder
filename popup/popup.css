@@ -1,14 +1,51 @@
-#toggle_url {
-    max-width: 150px;
-    color: white;
-    padding: 5px;
-    cursor: pointer;
+#popup-content{
+    position: relative;
+    width: 300px;
 }
 
-#toggle_url.activated{
+
+
+/* Button */
+.button_wrapper {
+    font-size: 20px;
+    border-radius: 12px;
+    padding: 0.3rem 0.5rem;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 1rem;
+    background-color: rgba(255, 255, 255, 0.3);
+    z-index: 1;
+}
+input#checkbox {
+    display: none;
+}
+input#checkbox:checked + .button {
+    filter: none;
     background-color: green;
 }
-
-#toggle_url:not(.activated){
+input#checkbox:checked + .button .dot {
+    left: calc(100% - 1rem - 0.1rem);
+    background-color: #fff;
+}
+.button {
+    position: relative;
+    width: 2.5rem;
+    height: 1.2rem;
+    border-radius: 1rem;
+    box-shadow: inset 2px 2px 5px rgba(0, 0, 0, 0.3);
+    cursor: pointer;
     background-color: red;
+}
+.button .dot {
+    position: absolute;
+    width: 1rem;
+    height: 1rem;
+    left: 0.1rem;
+    top: 50%;
+    transform: translateY(-50%);
+    border-radius: 50%;
+    transition: all 0.3s;
+    background-color: #fff;
+    will-change: left, background-color;
 }

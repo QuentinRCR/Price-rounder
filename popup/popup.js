@@ -23,19 +23,19 @@ onPopupOpen();
 async function onPopupOpen(){
     let valid_urls = await get_valid_urls();
     const active_page_hostname = await get_active_tab_hostname();
-    let toggle_url = document.getElementById("toggle_url");
+
+    let text_url = document.getElementsByClassName("text_toggle")[0];
+    text_url.textContent=active_page_hostname;
+
+    let checkbox = document.getElementById("checkbox");
+
     if(valid_urls.includes(active_page_hostname)){
-        toggle_url.textContent = "The extension is active. Click to disable";
-        toggle_url.classList.add("activated");
-    }
-    else{
-        toggle_url.textContent = "The extension is disabled. Click to activate on "+active_page_hostname;
-        toggle_url.classList.remove("activated");
+        checkbox.checked = true;
     }
 
 
     // add the url to the storage on popup click
-    toggle_url.addEventListener("click", async (e)=>{
+    checkbox.addEventListener("change", async (e)=>{
         let valid_urls = await get_valid_urls();
         const active_page_hostname = await get_active_tab_hostname();
     
@@ -50,6 +50,8 @@ async function onPopupOpen(){
         // update the store
         await browser.storage.local.set({ valid_urls }).then(()=>console.log(valid_urls,"successfully updated"));
     
+        await new Promise(r => setTimeout(r, 300)); //wait for the toggle animation 
+
         if(url_index>=0){
             send_command_to_active_tab("deactivate")
         }

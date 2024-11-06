@@ -8,7 +8,19 @@
   "content_scripts": [
     {
       "matches": ["<all_urls>"],
-      "js": ["price_rounder.js"]
+      "js": ["content_script.js"],
     }
-  ]
+  ],
+
+  "icons": {
+    "48": "icon.png"
+  },
+
+  "browser_action": {
+    "default_icon": "icon.png",
+    "default_title": "An error occurred while trying to open the popup",
+    "default_popup": "popup/popup.html"
+  },
+
+  "permissions": ["activeTab","storage"]
 }

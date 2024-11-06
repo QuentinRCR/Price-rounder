@@ -1,3 +1,5 @@
+// doesn't work on manomano, bonlanger, ebay
+
 const processElements = (elements) => {
     const pricePattern = /(\d\s*?){1,6}((\,||.)\d{1,2})?\s?€/g; //matches 22.90 €, 22.9 €, 22.9€, 22€, 22 € 1000€ 100 000€ 100 000.02€
 
@@ -6,10 +8,12 @@ const processElements = (elements) => {
         if (element.children.length==0 && element.textContent.match(pricePattern)) {
 
             let prices = element.textContent.match(pricePattern);
+            
+            console.log(prices)
 
             prices.forEach(price => {
                 const useComma = price.includes(','); // if the price is written with a comma
-                let originalPrice = price.replace('€', '').replace(/\s+/g, '') // Remove € and all white spaces
+                let originalPrice = price.replace('€', '').replace(/\s+/g, ''); // Remove € and all white spaces
 
                 if (useComma){
                     originalPrice = originalPrice.replace(',', '.');  //replace , with .
@@ -31,6 +35,7 @@ const processElements = (elements) => {
         else if (element.classList.contains('product-price__price')) { //a bit specific for darty
             // Find the price text
             let priceTexts = element.firstChild.data.match(pricePattern);
+
             priceTexts.forEach((priceText)=>{
                 let originalPrice = priceText.replace('€', '').replace(',', '.').replace(/\s+/g, '');
 
@@ -44,16 +49,23 @@ const processElements = (elements) => {
         // handle amazon weird price display
         else if(element.classList.contains('a-price')){
             let priceContainer = element.querySelector('span[aria-hidden="true"]');
-            if (priceContainer.children.length > 0){ // ignore simple prices that were already handled by the first case
-                
+            if (priceContainer.children.length > 0){ // ignore simple prices that were already handled by the first case            
                 //reconstruct the price from amazon weird price display
                 let priceText = (priceContainer.getElementsByClassName('a-price-whole')[0].textContent.replace(/\s+/g, '') +
-                                "," + priceContainer.getElementsByClassName('a-price-fraction')[0].textContent).replace(',,',',').replace(",",".");
+                                return_amazon_fraction(priceContainer)).replace(',,',',').replace(",",".");
                 let roundedPrice = roundPrice(Number(priceText)); // Round the price
                 priceContainer.innerHTML = roundedPrice.toFixed(2).replace(".", ",") + '€' // replace the complicated spans with some texts
             }
         }
     });
+}
+
+// add a fraction to the price if it exists
+function return_amazon_fraction(priceContainer){
+    return "," + 
+    (Array.from(priceContainer.childNodes).some(node => node.classList.contains('a-price-fraction')) //check is some children have the class
+     ? priceContainer.getElementsByClassName('a-price-fraction')[0].textContent
+     : "")
 }
 
 function roundPrice(price) {
@@ -63,7 +75,7 @@ function roundPrice(price) {
     }
     
     // For prices over 80, round to the nearest ten if the units are close to rounding up (88€ => 90€)
-    if (price > 80 && price % 10 > 7) {
+    else if (price > 80 && price % 10 > 7) {
         price = Math.ceil(price / 10) * 10;
     }
 
@@ -80,52 +92,48 @@ function roundPrice(price) {
     return price;
 }
 
-// browser.runtime.onMessage.addListener((message) => {
-//     console.log("Message received in background script:", message);
-//     console.log("Sender information:", sender);
 
 
-//     if (message.command === "toggle") {
-//       console.log("toggle on");
-//     }
-// })
-
-
-
-// function handleMessage(request, sender, sendResponse) {
-//     console.log(`A content script sent a message: ${request}`);
-//     // sendResponse({ response: "Response from background script" });
-//   }
-  
-// console.log("Background script successfully running");
-// browser.runtime.onMessage.addListener(handleMessage);
-
-
-
-
-// Initialization
-initialRounding = () => processElements(document.querySelectorAll("body *"));
-
-if (document.readyState !== 'loading') {
-    // document is already ready, just execute code here
-    initialRounding();
-} else {
-    // if the doc is not ready, execute the extension once the entire DOM is ready 
-    document.addEventListener('DOMContentLoaded', function () {
-        initialRounding();
-    });
+function get_active_tab_hostname(){
+    return new URL(window.location.href).hostname
 }
 
+async function get_valid_urls(){
+    return (await browser.storage.local.get("valid_urls")).valid_urls
+}
 
-// Handle DOM changes
-// Initialize MutationObserver
-const observer = new MutationObserver(handleNewNodes);
+// initialism the extension
+async function initialize(force){
+    let valid_urls = await get_valid_urls();
+    const active_page_hostname = await get_active_tab_hostname();
 
-// Start observing the body for child additions
-observer.observe(document.body, {
-    childList: true,
-    subtree: true
-});
+    if(valid_urls.includes(active_page_hostname) || force){ // if the extension have to be run on the page, initialize everything 
+        console.log("The rounding has been initialized")
+
+        // Initialization
+        initialRounding = () => processElements(document.querySelectorAll("body *"));
+
+        if (document.readyState !== 'loading') {
+            // document is already ready, just execute code here
+            initialRounding();
+        } else {
+            // if the doc is not ready, execute the extension once the entire DOM is ready 
+            document.addEventListener('DOMContentLoaded', function () {
+                initialRounding();
+            });
+        }
+
+
+        // Handle DOM changes
+        const observer = new MutationObserver(handleNewNodes);
+
+        // Start observing the body for child additions
+        observer.observe(document.body, {
+            childList: true,
+            subtree: true
+        });
+    }
+}
 
 // perform this operation every time the dom is updated
 function handleNewNodes(mutations) {
@@ -147,3 +155,25 @@ function handleNewNodes(mutations) {
 
     processElements(addedElements);
 }
+
+
+console.log("The extension is running");
+initialize(false) // initialization on page load
+
+
+// React to messages from the popup
+function handleMessage(request, sender, sendResponse) {
+    if(request.command === "activate"){ // force activate the extension
+        console.log("Activating the extension")
+        initialize(true); //force the initialization 
+    }
+    else if (request.command === "deactivate"){ //reload the page to get ride of the rounded elements 
+        console.log("Deactivating the extension")
+        location.reload()
+    }
+    else{
+        console.warn("The command",request.command,"from",sender,"was received but not handled");
+    }
+}
+
+browser.runtime.onMessage.addListener(handleMessage);

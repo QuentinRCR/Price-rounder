@@ -99,7 +99,7 @@ function get_active_tab_hostname(){
 }
 
 async function get_valid_urls(){
-    return (await browser.storage.local.get("valid_urls")).valid_urls
+    return (await browser.storage.local.get("valid_urls")).valid_urls || [];
 }
 
 // initialism the extension

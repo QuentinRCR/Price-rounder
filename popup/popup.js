@@ -17,30 +17,47 @@ function send_command_to_active_tab(command){
 
 
 
-// add the url to the storage on popup click
-const toggle_url = document.getElementById("toggle_url");
 
-toggle_url.addEventListener("click", async (e)=>{
+onPopupOpen();
+
+async function onPopupOpen(){
     let valid_urls = await get_valid_urls();
     const active_page_hostname = await get_active_tab_hostname();
-
-    let url_index = valid_urls.indexOf(active_page_hostname) //get the index of the hostname
-    if(url_index>=0){ // if the hostname is already present, remove it
-        valid_urls.splice(url_index, 1);
-    }
-    else{ //otherwise add it
-        valid_urls.push(active_page_hostname)
-    }
-
-    // update the store
-    await browser.storage.local.set({ valid_urls }).then(()=>console.log(valid_urls,"successfully updated"));
-
-    if(url_index>=0){
-        send_command_to_active_tab("deactivate")
+    let toggle_url = document.getElementById("toggle_url");
+    if(valid_urls.includes(active_page_hostname)){
+        toggle_url.textContent = "The extension is active. Click to disable";
+        toggle_url.classList.add("activated");
     }
     else{
-        send_command_to_active_tab("activate")
+        toggle_url.textContent = "The extension is disabled. Click to activate on "+active_page_hostname;
+        toggle_url.classList.remove("activated");
     }
 
-    window.close() // close the popup
-})
+
+    // add the url to the storage on popup click
+    toggle_url.addEventListener("click", async (e)=>{
+        let valid_urls = await get_valid_urls();
+        const active_page_hostname = await get_active_tab_hostname();
+    
+        let url_index = valid_urls.indexOf(active_page_hostname) //get the index of the hostname
+        if(url_index>=0){ // if the hostname is already present, remove it
+            valid_urls.splice(url_index, 1);
+        }
+        else{ //otherwise add it
+            valid_urls.push(active_page_hostname)
+        }
+    
+        // update the store
+        await browser.storage.local.set({ valid_urls }).then(()=>console.log(valid_urls,"successfully updated"));
+    
+        if(url_index>=0){
+            send_command_to_active_tab("deactivate")
+        }
+        else{
+            send_command_to_active_tab("activate")
+        }
+    
+        window.close() // close the popup
+    })
+}
+

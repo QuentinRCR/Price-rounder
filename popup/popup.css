@@ -1,7 +1,14 @@
-#add_url{
-    background-color: green;
-    border: solid 2px black;
+#toggle_url {
+    max-width: 150px;
     color: white;
     padding: 5px;
     cursor: pointer;
+}
+
+#toggle_url.activated{
+    background-color: green;
+}
+
+#toggle_url:not(.activated){
+    background-color: red;
 }

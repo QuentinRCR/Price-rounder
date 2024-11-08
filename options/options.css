@@ -1,0 +1,75 @@
+/* Basic styling for the list and delete button */
+body {
+    font-family: Arial, sans-serif;
+    display: flex;
+    flex-direction: column;
+}
+
+
+header{
+    display: flex;
+    justify-content: left;
+    align-items: center;
+    margin: 10px 0;
+    height: 40px;
+    gap: 20px;
+}
+
+header img{
+    height: 100%;
+    margin-left: 30px;
+}
+
+header h1{
+    font-weight:bold;
+    color:#01d68a;
+    font-size: 25px;
+}
+
+
+
+/* List of urls in use */
+.url-list-container{
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    background-color: #f4f4f9;
+    border: black 2px solid;
+    border-radius: 20px;
+    width: 80%;
+    align-self: center;
+    margin-bottom: 20px;
+}
+
+.url-list-container h2{
+    font-size: 16px;
+}
+
+.url-list {
+    list-style-type: none;
+    padding: 0;
+    width: 90%;
+}
+
+.url-item {
+    background-color: #fff;
+    border: 1px solid #ddd;
+    padding: 10px;
+    margin: 5px 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-radius: 5px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.url-item .remove-btn {
+    color: #ff0000;
+    cursor: pointer;
+    font-size: 16px;
+    font-weight: bold;
+
+}
+
+
+

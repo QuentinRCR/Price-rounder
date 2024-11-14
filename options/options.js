@@ -1,3 +1,4 @@
+// get the valid urls stored in Firefox's storage
 async function get_valid_urls(){
     return (await browser.storage.local.get("valid_urls")).valid_urls || []
 }
@@ -31,7 +32,7 @@ async function renderUrls() {
     });
 }
 
-// Function to remove a URL and log it in the console
+// Function to remove a URL and remove it from the storage list
 async function removeUrl(index) {
     valid_urls = (await get_valid_urls());
     valid_urls.splice(index, 1); // Remove the URL from the array

@@ -2,6 +2,7 @@ function get_active_tab_hostname(){
     return browser.tabs.query({currentWindow: true, active: true}).then((tab)=> new URL(tab[0].url).hostname)
 }
 
+// get the valid urls stored in Firefox's storage
 async function get_valid_urls(){
     return (await browser.storage.local.get("valid_urls")).valid_urls || []
 }

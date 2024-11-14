@@ -1,5 +1,3 @@
-// doesn't work on manomano
-
 // add a fraction to the price if it exists
 function return_amazon_fraction(priceContainer){
     return "," + 
@@ -16,7 +14,7 @@ function roundPrice(price) {
     }
     
     // For prices over 80, round to the nearest ten if the units are close to rounding up (88€ => 90€)
-    else if (price > 80 && price % 10 > 7) {
+    else if (price > 80 && price % 10 > 6.9) {
         price = Math.ceil(price / 10) * 10;
     }
 
@@ -37,11 +35,11 @@ function roundPrice(price) {
 function formatPrice(price, currencySymbolsRegex) {
     const currencyMatch = price.match(currencySymbolsRegex);
     const currency = currencyMatch[0];
-    const currencyFirst = currencyMatch.index === 0; //if the currency is a the beginning, it index is zero
+    const currencyFirst = currencyMatch.index === 0; //if the currency is a the beginning, its index is zero
 
     let formattedPrice = price.replace(currency, '').replace(/\s+/g, ''); // remove the currency to round the price up
+    
     const useComma = formattedPrice.includes(',');
-
     useComma && (formattedPrice = formattedPrice.replace(',', '.')); // Replace comma with period for parsing
 
     let roundedPrice = roundPrice(Number(formattedPrice)).toFixed(2); //round price and convert back to 2 decimal
@@ -51,12 +49,11 @@ function formatPrice(price, currencySymbolsRegex) {
     return currencyFirst ? currency + roundedPrice : roundedPrice + currency;
 }
 
+// round any price present in the element given by the application
 const processElements = (elements) => {
     const valuePattern = `(\\d\\s*?){1,6}([.,]\\d{1,2})?`; //matches 22.90, 22.9, 22.9, 22, 22, 1000, 100 000, 100 000.02
     const currencySymbolsRegex = `([€$£¥₹₩₽₺₪₦৳₱₨৳]|zł|CHF|د.إ|USD|EUR)`; // match any possible currency
     const pricePattern = new RegExp(`(${valuePattern}\\s?${currencySymbolsRegex})|(${currencySymbolsRegex}\\s?${valuePattern})`,'g');
-
-    // const pricePattern = /\s?[€$£¥]/g; //matches 22.90 €, 22.9 €, 22.9€, 22€, 22 € 1000€ 100 000€ 100 000.02€
 
     elements.forEach(element => {
         //regular price
@@ -68,11 +65,11 @@ const processElements = (elements) => {
         if (matchedPrices) {
             matchedPrices?.forEach(price => {
                 const formattedPrice = formatPrice(price, currencySymbolsRegex); //format it
-                target_node.nodeValue = target_node.nodeValue.replace(price, formattedPrice);
+                target_node.nodeValue = target_node.nodeValue.replace(price, formattedPrice); //replace it
             });
         }
 
-        // handle amazon weird price display
+        // handle amazon price display
         else if(element.classList.contains('a-price')){
             let priceContainer = element.querySelector('span[aria-hidden="true"]');
             if (priceContainer.children.length > 0){ // ignore simple prices that were already handled by the first case  
@@ -83,15 +80,11 @@ const processElements = (elements) => {
                 }
                 else{ //otherwise reconstruct the price
                     let priceText = (priceContainer.getElementsByClassName('a-price-whole')[0].textContent.replace(/\s+/g, '') +
-                                    return_amazon_fraction(priceContainer)).replaceAll(",",".").replace('..','.') + priceContainer.getElementsByClassName('a-price-symbol')[0].textContent;
+                                    return_amazon_fraction(priceContainer)).replaceAll(",",".").replace('..','.') +
+                                    priceContainer.getElementsByClassName('a-price-symbol')[0].textContent;
                     formattedPrice = formatPrice(priceText, currencySymbolsRegex);
                 }
-                priceContainer.innerHTML = formattedPrice;
-                
-                //reconstruct the price from amazon weird price display
-
-                // let roundedPrice = roundPrice(Number(priceText)); // Round the price
-                // priceContainer.innerHTML = roundedPrice.toFixed(2).replace(".", ",") + '€' // replace the complicated spans with some texts
+                priceContainer.textContent = formattedPrice;
             }
         }
     });
@@ -103,8 +96,25 @@ function get_active_tab_hostname(){
     return new URL(window.location.href).hostname
 }
 
+// get the valid urls stored in Firefox's storage
 async function get_valid_urls(){
     return (await browser.storage.local.get("valid_urls")).valid_urls || [];
+}
+
+
+
+// query all elements, including shadow ones
+function queryAllDeep(selector, root = document) {
+    const elements = Array.from(root.querySelectorAll(selector));
+
+    // Recursively search for the selector in each shadow root
+    root.querySelectorAll("*").forEach((element) => {
+        if (element.shadowRoot) {
+            elements.push(...queryAllDeep(selector, element.shadowRoot));
+        }
+    });
+
+    return elements;
 }
 
 // initialism the extension
@@ -113,7 +123,6 @@ async function initialize(force){
     const active_page_hostname = await get_active_tab_hostname();
 
     if(valid_urls.includes(active_page_hostname) || force){ // if the extension have to be run on the page, initialize everything 
-        console.log("The rounding has been initialized")
 
         // Initialization
         initialRounding = () => processElements(queryAllDeep("*"));
@@ -140,7 +149,7 @@ async function initialize(force){
     }
 }
 
-// perform this operation every time the dom is updated
+// round price on every element updated in the DOM
 function handleNewNodes(mutations) {
     const addedElements = []; // Array to store all added elements
 
@@ -158,22 +167,17 @@ function handleNewNodes(mutations) {
         });
     });
 
-    processElements(addedElements);
+    processElements(addedElements); // round the price 
 }
 
-
-console.log("The extension is running");
-initialize(false) // initialization on page load
 
 
 // React to messages from the popup
 function handleMessage(request, sender, sendResponse) {
-    if(request.command === "activate"){ // force activate the extension
-        console.log("Activating the extension")
-        initialize(true); //force the initialization 
+    if(request.command === "activate"){ //force the initialization 
+        initialize(true);
     }
     else if (request.command === "deactivate"){ //reload the page to get ride of the rounded elements 
-        console.log("Deactivating the extension")
         location.reload()
     }
     else{
@@ -181,18 +185,7 @@ function handleMessage(request, sender, sendResponse) {
     }
 }
 
-browser.runtime.onMessage.addListener(handleMessage);
 
-// query all elements, including shadow ones
-function queryAllDeep(selector, root = document) {
-    const elements = Array.from(root.querySelectorAll(selector));
 
-    // Recursively search for the selector in each shadow root
-    root.querySelectorAll("*").forEach((element) => {
-        if (element.shadowRoot) {
-            elements.push(...queryAllDeep(selector, element.shadowRoot));
-        }
-    });
-
-    return elements;
-}
+initialize(false) // initialization the extension
+browser.runtime.onMessage.addListener(handleMessage); //listen to messages from the popup

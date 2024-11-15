@@ -56,36 +56,41 @@ const processElements = (elements) => {
     const pricePattern = new RegExp(`(${valuePattern}\\s?${currencySymbolsRegex})|(${currencySymbolsRegex}\\s?${valuePattern})`,'g');
 
     elements.forEach(element => {
-        //regular price
-        let target_node = null;
-        if(element.children.length <= 1){ // For elements close to the root
-            target_node = Array.from(element.childNodes).find(node => node.nodeType === Node.TEXT_NODE); //get the content written in the element
-        }
-        const matchedPrices = target_node?.nodeValue.match(pricePattern); // try to match a price
-        if (matchedPrices) {
-            matchedPrices?.forEach(price => {
-                const formattedPrice = formatPrice(price, currencySymbolsRegex); //format it
-                target_node.nodeValue = target_node.nodeValue.replace(price, formattedPrice); //replace it
-            });
-        }
-
-        // handle amazon price display
-        else if(element.classList.contains('a-price')){
-            let priceContainer = element.querySelector('span[aria-hidden="true"]');
-            if (priceContainer.children.length > 0){ // ignore simple prices that were already handled by the first case  
-                const priceText = element.getElementsByClassName('a-offscreen')[0].textContent
-                let formattedPrice;
-                if(priceText.match(pricePattern)){ // use the off screen price when it exist
-                    formattedPrice = formatPrice(priceText, currencySymbolsRegex);
-                }
-                else{ //otherwise reconstruct the price
-                    let priceText = (priceContainer.getElementsByClassName('a-price-whole')[0].textContent.replace(/\s+/g, '') +
-                                    return_amazon_fraction(priceContainer)).replaceAll(",",".").replace('..','.') +
-                                    priceContainer.getElementsByClassName('a-price-symbol')[0].textContent;
-                    formattedPrice = formatPrice(priceText, currencySymbolsRegex);
-                }
-                priceContainer.textContent = formattedPrice;
+        try{
+            //regular price
+            let target_node = null;
+            if(element.children.length <= 1){ // For elements close to the root
+                target_node = Array.from(element.childNodes).find(node => node.nodeType === Node.TEXT_NODE); //get the content written in the element
             }
+            const matchedPrices = target_node?.nodeValue.match(pricePattern); // try to match a price
+            if (matchedPrices) {
+                matchedPrices?.forEach(price => {
+                    const formattedPrice = formatPrice(price, currencySymbolsRegex); //format it
+                    target_node.nodeValue = target_node.nodeValue.replace(price, formattedPrice); //replace it
+                });
+            }
+
+            // handle amazon price display
+            else if(element.classList.contains('a-price')){
+                let priceContainer = element.querySelector('span[aria-hidden="true"]');
+                if (priceContainer.children.length > 0){ // ignore simple prices that were already handled by the first case  
+                    const priceText = element.getElementsByClassName('a-offscreen')[0].textContent
+                    let formattedPrice;
+                    if(priceText.match(pricePattern)){ // use the off screen price when it exist
+                        formattedPrice = formatPrice(priceText, currencySymbolsRegex);
+                    }
+                    else{ //otherwise reconstruct the price
+                        let priceText = (priceContainer.getElementsByClassName('a-price-whole')[0].textContent.replace(/\s+/g, '') +
+                                        return_amazon_fraction(priceContainer)).replaceAll(",",".").replace('..','.') +
+                                        priceContainer.getElementsByClassName('a-price-symbol')[0].textContent;
+                        formattedPrice = formatPrice(priceText, currencySymbolsRegex);
+                    }
+                    priceContainer.textContent = formattedPrice;
+                }
+            }
+        }
+        catch (error){
+            console.error("An error occurred while processing "+element+": "+error)      
         }
     });
 }

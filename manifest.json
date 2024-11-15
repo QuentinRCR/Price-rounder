@@ -1,9 +1,9 @@
 {
   "manifest_version": 2,
-  "name": "Euro price rounder",
+  "name": "Price rounder",
   "version": "1.0",
 
-  "description": "Round any price in euro to the upper value.",
+  "description": "Round up psychological pricing to its nearest whole value, revealing the true cost of items on selected websites. Supports a wide range of currencies, including € $ £ ¥ ₹ ₩ ₽ ₺ ₪ ₦ ৳ ₱ ₨.",
 
   "content_scripts": [
     {
